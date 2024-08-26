@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/TedMartell/Blog_Aggregator/internal/database"
 	"github.com/joho/godotenv"
@@ -17,6 +18,7 @@ type apiConfig struct {
 }
 
 func main() {
+
 	godotenv.Load(".env")
 
 	port := os.Getenv("PORT")
@@ -39,6 +41,8 @@ func main() {
 		DB: dbQueries,
 	}
 
+	go startScraping(dbQueries, 10, time.Minute)
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /v1/users", apiCfg.handlerUsersCreate)
@@ -49,6 +53,8 @@ func main() {
 	mux.HandleFunc("POST /v1/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowsCreate))
 	mux.HandleFunc("GET /v1/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerGetFeedFollows))
 	mux.HandleFunc("DELETE /v1/feed_follows/{feedFollowID}", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowDelete))
+
+	mux.HandleFunc("GET /v1/posts", apiCfg.middlewareAuth(apiCfg.handlerGetPostsForUser))
 
 	mux.HandleFunc("GET /v1/healthz", handlerReadiness)
 	mux.HandleFunc("GET /v1/err", handlerError)
