@@ -47,12 +47,22 @@ func (cfg *apiConfig) handlerGetFeedFollows(w http.ResponseWriter, r *http.Reque
 	respondWithJSON(w, http.StatusOK, databaseFeedFollowsToFeedFollows(feedFollows))
 }
 
-func (cfg *apiConfig) handlerDeleteFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
-	feedFollowIDStr := //???
-	feedFollowID, err := uuid.Parse()
+func (cfg *apiConfig) handlerFeedFollowDelete(w http.ResponseWriter, r *http.Request, user database.User) {
+	feedFollowIDStr := r.PathValue("feedFollowID")
+	feedFollowID, err := uuid.Parse(feedFollowIDStr)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error parsing feed follow: %v", err)
+		respondWithError(w, http.StatusBadRequest, "Invalid feed follow ID")
 		return
 	}
-	cfg.DB.DeleteFeedFollow()
+
+	err = cfg.DB.DeleteFeedFollow(r.Context(), database.DeleteFeedFollowParams{
+		UserID: user.ID,
+		ID:     feedFollowID,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't delete feed follow")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, struct{}{})
 }
